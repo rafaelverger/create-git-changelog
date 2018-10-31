@@ -1,0 +1,28 @@
+{
+  "name": "create-git-changelog",
+  "version": "0.0.0",
+  "description": "Automate your changelog update based on repo commits",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rafaelverger/create-git-changelog.git"
+  },
+  "keywords": [
+    "changelog",
+    "git",
+    "changes",
+    "update",
+    "automate",
+    "generate"
+  ],
+  "author": "rafaelverger",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rafaelverger/create-git-changelog/issues"
+  },
+  "homepage": "https://github.com/rafaelverger/create-git-changelog#readme",
+  "engines": { "node" : ">=4" }
+}
