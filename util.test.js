@@ -5,7 +5,7 @@
  const util = require('./util');
 
 test('parseCommit', () => {
-  commitText = `
+  const commitText = `
 commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf (HEAD -> issue1, origin/master, master)
 Author: Anon <anon@noone.knows>
 Date:   2018-10-31 18:35:27 -0300
@@ -45,7 +45,7 @@ index 0000000..0361a2c
 });
 
 test('parseCommit multiple diffs', () => {
-  commitText = `
+  const commitText = `
 commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf
 Author: Anon <anon@noone.knows>
 Date:   2018-10-31 18:35:27 -0300
@@ -156,7 +156,7 @@ index 0000000..b9a6faa
 });
 
 test('parseCommit merged commit', () => {
-  commitText = `
+  const commitText = `
 commit 2d028acf8157a6626b9dd6a080810dd25e3cff3a
 Merge: 53fa825 21a6349
 Author: Anon <anon@noone.knows>
@@ -178,7 +178,7 @@ Date:   2018-11-01 00:05:15 -0300
 });
 
 test('parseCommit pkg version change commit', () => {
-  commitText = `
+  const commitText = `
 commit cc70261c7cbe458221caec5bfab14745d73cff79 (tag: v1.3.1)
 Author: Anon <anon@noone.knows>
 Date:   2017-04-10 17:50:05 -0700
@@ -220,8 +220,9 @@ index b952b44..602c994 100644
   })
 });
 
-test('parseCommit pkg version change commit', () => {
-  commitText = `
+test('parseCommit commit with resolved issue', () => {
+  const commitTexts = [
+  `
 commit 21a63493df3557cf4efd31fe9d902cbd33734743
 Author: Anon <anon@noone.knows>
 Date:   2018-11-01 00:03:01 -0300
@@ -230,7 +231,7 @@ Date:   2018-11-01 00:03:01 -0300
 
     Testing
 
-    FIX #3
+    close #3
 
 diff --git a/wercker.yml b/wercker.yml
 new file mode 100644
@@ -243,9 +244,78 @@ index 0000000..f6c9cb5
 +  steps:
 +    - npm-install
 +    - npm-test
-`.trim();
-  const obj = util.parseCommit(commitText);
-  expect(obj).toMatchObject({
+  `.trim(),
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI.
+
+    Testing
+
+    closes #3
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI.
+
+    Testing
+
+    fixes #3
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI.
+
+    Testing
+
+    fix #3
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  ];
+  const expected = {
     id: '21a63493df3557cf4efd31fe9d902cbd33734743',
     author: 'Anon <anon@noone.knows>',
     date: new Date('2018-11-01 00:03:01 -0300'),
@@ -266,5 +336,9 @@ index 0000000..f6c9cb5
       ]
     },
     resolvedIssue: '3'
-  })
+  }
+  commitTexts.forEach(commitText => {
+    const obj = util.parseCommit(commitText);
+    expect(obj).toMatchObject(expected);
+  });
 });
