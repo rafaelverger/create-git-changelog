@@ -27,21 +27,12 @@ gitHistory.on('close', (code) => {
   console.log(changes.length + ' commits were found');
 
   console.log('Parsing commits...')
-  const changesObject = changes.map(changeText => {
-    const change = parseCommit(changeText);
-    const packageChange = change.patch['package.json'];
-    if (packageChange) {
-      const versionChange = packageChange.find(diffLine => diffLine.indexOf('+  "version":') === 0);
-      if (versionChange) {
-        change.version = versionChange.replace(/.*?"(\d+\.\d+\.\d+)".*/, '$1');
-      }
-    }
-    return change;
-  }).sort();
+  const parsedChanges = changes.map(parseCommit).filter(change => (
+    change.resolvedIssue || Object.keys(change.patch).length
+  ));
 
   console.log('Sorting commits by version...');
-  // const fixIssueRegex = /((fix(es)?)|(closes?))\s?#\d+\b/i;
-  const changesTracker = changesObject.reduce((tracker, change, idx, arr) => {
+  const changesTracker = parsedChanges.reduce((tracker, change, idx, arr) => {
     if (change.version) {
       if (Object.keys(tracker).length === 1) {
         // if it's the first version found, set curr commits as unpublished version
@@ -61,12 +52,15 @@ gitHistory.on('close', (code) => {
   changesTracker.curr = null;
   delete changesTracker.curr;
 
-
+  console.log('Writing changelog...');
   const changelog_md = Object.keys(changesTracker)
     .sort((k1, k2) => k1.match(/\d+\.\d+\.\d+/) ? (k2 - k1) : -1)
     .filter(version => changesTracker[version].length)
     .reduce((file, version) => file.concat(
-      ['## ' + version], changesTracker[version].map(change => '- ' + change.message)
+      ['## ' + version],
+      changesTracker[version]
+        .map(change => '- ' + change.message.replace('\n', '\n  ')),
+      ['']
     ), ['# CHANGELOG\n']);
 
   fs.writeFileSync('CHANGELOG.md', changelog_md.join('\n') + '\n', 'utf8');
