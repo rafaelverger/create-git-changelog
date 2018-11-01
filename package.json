@@ -4,7 +4,9 @@
   "description": "Automate your changelog update based on repo commits",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "coverage": "cat ./coverage/lcov.info | coveralls",
+    "test:unit": "jest --coverage",
+    "test": "npm run test:unit && npm run coverage"
   },
   "repository": {
     "type": "git",
@@ -28,6 +30,7 @@
     "node": ">=4"
   },
   "devDependencies": {
+    "coveralls": "^3.0.2",
     "jest": "^21.2.1"
   }
 }

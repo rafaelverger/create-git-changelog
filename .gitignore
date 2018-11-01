@@ -1,6 +1,9 @@
 # dependencies
 node_modules
 
+# test
+coverage
+
 # misc
 .DS_Store
 
