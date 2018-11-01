@@ -1,8 +1,4 @@
-/**
- * @jest-environment node
- */
-
- const util = require('./util');
+const util = require('./util');
 
 test('parseCommit', () => {
   const commitText = `

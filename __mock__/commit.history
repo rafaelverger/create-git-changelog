@@ -1,0 +1,745 @@
+commit 5fcd5f1938d26365cb381163c1df1a5e29a2930e
+Merge: bd58a04 daa687e
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-11-01 01:05:14 -0300
+
+    Merge pull request #8 from rafaelverger/issue7
+
+    Using significant commits to build changelogs
+
+commit daa687eb0429f3fd620231d6202a09b1897debe4
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-11-01 01:03:34 -0300
+
+    Using new info to filter significant commits. FIX #7
+
+diff --git a/index.js b/index.js
+index 6d745fd..9bd1047 100644
+--- a/index.js
++++ b/index.js
+@@ -27,21 +27,12 @@ gitHistory.on('close', (code) => {
+   console.log(changes.length + ' commits were found');
+
+   console.log('Parsing commits...')
+-  const changesObject = changes.map(changeText => {
+-    const change = parseCommit(changeText);
+-    const packageChange = change.patch['package.json'];
+-    if (packageChange) {
+-      const versionChange = packageChange.find(diffLine => diffLine.indexOf('+  "version":') === 0);
+-      if (versionChange) {
+-        change.version = versionChange.replace(/.*?"(\d+\.\d+\.\d+)".*/, '$1');
+-      }
+-    }
+-    return change;
+-  }).sort();
++  const parsedChanges = changes.map(parseCommit).filter(change => (
++    change.resolvedIssue || Object.keys(change.patch).length
++  ));
+
+   console.log('Sorting commits by version...');
+-  // const fixIssueRegex = /((fix(es)?)|(closes?))\s?#\d+\b/i;
+-  const changesTracker = changesObject.reduce((tracker, change, idx, arr) => {
++  const changesTracker = parsedChanges.reduce((tracker, change, idx, arr) => {
+     if (change.version) {
+       if (Object.keys(tracker).length === 1) {
+         // if it's the first version found, set curr commits as unpublished version
+@@ -61,12 +52,15 @@ gitHistory.on('close', (code) => {
+   changesTracker.curr = null;
+   delete changesTracker.curr;
+
+-
++  console.log('Writing changelog...');
+   const changelog_md = Object.keys(changesTracker)
+     .sort((k1, k2) => k1.match(/\d+\.\d+\.\d+/) ? (k2 - k1) : -1)
+     .filter(version => changesTracker[version].length)
+     .reduce((file, version) => file.concat(
+-      ['## ' + version], changesTracker[version].map(change => '- ' + change.message)
++      ['## ' + version],
++      changesTracker[version]
++        .map(change => '- ' + change.message.replace('\n', '\n  ')),
++      ['']
+     ), ['# CHANGELOG\n']);
+
+   fs.writeFileSync('CHANGELOG.md', changelog_md.join('\n') + '\n', 'utf8');
+
+commit 3e4f63dbb0c49803bdebe03ed7ee52c29f5a18d0
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-11-01 00:54:59 -0300
+
+    Enhancing change infos while parsing commits. rel #7
+
+diff --git a/util.js b/util.js
+index 4be175d..07fcdaf 100644
+--- a/util.js
++++ b/util.js
+@@ -1,8 +1,11 @@
+
++const FIX_ISSUE_REGEX = /((fix(es)?)|(closes?))\s?#(\d)+\b/i;
+ const COMMIT_PROPERTIES_HANDLER = (v) => {
+   switch(v.toLowerCase()){
+     case 'date':
+       return x => new Date(x);
++    case 'merge':
++      return x => x.split(' ');
+     default:
+       return x => x
+   }
+@@ -15,7 +18,7 @@ function parseCommit(commitText) {
+     line => line.indexOf('diff --git') === 0
+   )) || changeLines.length;
+
+-  return Object.assign(
++  const change = Object.assign(
+     {
+       // first line of commit message is its id
+       id: changeLines[0].replace(/^commit\s+([a-z0-9]{40}).*/, '$1')
+@@ -47,6 +50,24 @@ function parseCommit(commitText) {
+       }, {}),
+     }
+   );
++  const packageChange = change.patch['package.json'];
++  if (packageChange) {
++    const versionChange = packageChange.find(diffLine => diffLine.indexOf('+  "version":') === 0);
++    if (versionChange) {
++      change.version = versionChange.replace(/.*?"(\d+\.\d+\.\d+)".*/, '$1');
++    }
++  }
++
++  const issueRelated = FIX_ISSUE_REGEX.exec(change.message)
++  if (issueRelated) {
++    change.resolvedIssue = issueRelated[5];
++    change.message = change.message
++      .replace(issueRelated[0], '')
++      .replace(/\s+?(\s)/g, '$1')
++      .trim();
++  }
++
++  return change;
+ }
+
+ module.exports = {
+diff --git a/util.test.js b/util.test.js
+index 8a368d0..6b8b6ca 100644
+--- a/util.test.js
++++ b/util.test.js
+@@ -7,7 +7,7 @@
+ test('parseCommit', () => {
+   commitText = `
+ commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf (HEAD -> issue1, origin/master, master)
+-Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
++Author: Anon <anon@noone.knows>
+ Date:   2018-10-31 18:35:27 -0300
+
+     Initial commit
+@@ -26,7 +26,7 @@ index 0000000..0361a2c
+   const obj = util.parseCommit(commitText);
+   expect(obj).toMatchObject({
+     id: '0808ee7ab79b3d6b8740375b14e4567e827d3ccf',
+-    author: 'Rafael Nunes Verger <rafael@rafaelverger.com.br>',
++    author: 'Anon <anon@noone.knows>',
+     date: new Date('2018-10-31 18:35:27 -0300'),
+     message: 'Initial commit\nDouble line',
+     patch: {
+@@ -44,11 +44,10 @@ index 0000000..0361a2c
+   })
+ });
+
+-
+ test('parseCommit multiple diffs', () => {
+   commitText = `
+ commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf
+-Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
++Author: Anon <anon@noone.knows>
+ Date:   2018-10-31 18:35:27 -0300
+
+     Initial commit
+@@ -102,7 +101,7 @@ index 0000000..b9a6faa
+   const obj = util.parseCommit(commitText);
+   expect(obj).toMatchObject({
+     id: '0808ee7ab79b3d6b8740375b14e4567e827d3ccf',
+-    author: 'Rafael Nunes Verger <rafael@rafaelverger.com.br>',
++    author: 'Anon <anon@noone.knows>',
+     date: new Date('2018-10-31 18:35:27 -0300'),
+     message: 'Initial commit\nDouble line',
+     patch: {
+@@ -155,3 +154,117 @@ index 0000000..b9a6faa
+     }
+   })
+ });
++
++test('parseCommit merged commit', () => {
++  commitText = `
++commit 2d028acf8157a6626b9dd6a080810dd25e3cff3a
++Merge: 53fa825 21a6349
++Author: Anon <anon@noone.knows>
++Date:   2018-11-01 00:05:15 -0300
++
++    Merge pull request #6 from rafaelverger/issue3
++
++    Using wercker as Continuous Integration service
++`.trim();
++  const obj = util.parseCommit(commitText);
++  expect(obj).toMatchObject({
++    id: '2d028acf8157a6626b9dd6a080810dd25e3cff3a',
++    merge: ['53fa825', '21a6349'],
++    author: 'Anon <anon@noone.knows>',
++    date: new Date('2018-11-01 00:05:15 -0300'),
++    message: 'Merge pull request #6 from rafaelverger/issue3\nUsing wercker as Continuous Integration service',
++    patch: {}
++  })
++});
++
++test('parseCommit pkg version change commit', () => {
++  commitText = `
++commit cc70261c7cbe458221caec5bfab14745d73cff79 (tag: v1.3.1)
++Author: Anon <anon@noone.knows>
++Date:   2017-04-10 17:50:05 -0700
++
++    Version Bump v13.1: #16 fix issue where concat was used incorrectly
++
++diff --git a/package.json b/package.json
++index b952b44..602c994 100644
++--- a/package.json
+++++ b/package.json
++@@ -1,6 +1,6 @@
++ {
++   "name": "smtpapi",
++-  "version": "1.3.0",
+++  "version": "1.3.1",
++   "main": "lib/main.js",
++`.trim();
++  const obj = util.parseCommit(commitText);
++  expect(obj).toMatchObject({
++    id: 'cc70261c7cbe458221caec5bfab14745d73cff79',
++    author: 'Anon <anon@noone.knows>',
++    date: new Date('2017-04-10 17:50:05 -0700'),
++    message: 'Version Bump v13.1: #16 fix issue where concat was used incorrectly',
++    patch: {
++      'package.json': [
++        'diff --git a/package.json b/package.json',
++        'index b952b44..602c994 100644',
++        '--- a/package.json',
++        '+++ b/package.json',
++        '@@ -1,6 +1,6 @@',
++        ' {',
++        '   "name": "smtpapi",',
++        '-  "version": "1.3.0",',
++        '+  "version": "1.3.1",',
++        '   "main": "lib/main.js",',
++      ]
++    },
++    version: '1.3.1'
++  })
++});
++
++test('parseCommit pkg version change commit', () => {
++  commitText = `
++commit 21a63493df3557cf4efd31fe9d902cbd33734743
++Author: Anon <anon@noone.knows>
++Date:   2018-11-01 00:03:01 -0300
++
++    Using wercker as CI.
++
++    Testing
++
++    FIX #3
++
++diff --git a/wercker.yml b/wercker.yml
++new file mode 100644
++index 0000000..f6c9cb5
++--- /dev/null
+++++ b/wercker.yml
++@@ -0,0 +1,5 @@
+++box: node:4
+++build:
+++  steps:
+++    - npm-install
+++    - npm-test
++`.trim();
++  const obj = util.parseCommit(commitText);
++  expect(obj).toMatchObject({
++    id: '21a63493df3557cf4efd31fe9d902cbd33734743',
++    author: 'Anon <anon@noone.knows>',
++    date: new Date('2018-11-01 00:03:01 -0300'),
++    message: 'Using wercker as CI.\nTesting',
++    patch: {
++      'wercker.yml': [
++        'diff --git a/wercker.yml b/wercker.yml',
++        'new file mode 100644',
++        'index 0000000..f6c9cb5',
++        '--- /dev/null',
++        '+++ b/wercker.yml',
++        '@@ -0,0 +1,5 @@',
++        '+box: node:4',
++        '+build:',
++        '+  steps:',
++        '+    - npm-install',
++        '+    - npm-test',
++      ]
++    },
++    resolvedIssue: '3'
++  })
++});
+
+commit bd58a04e5ca50e7e28ffe2cf092798103f29bf17
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-11-01 00:09:04 -0300
+
+    Add wercker badge to README
+
+diff --git a/README.md b/README.md
+index 0361a2c..2105877 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,4 @@
++[![wercker status](https://app.wercker.com/status/380ff799a37ab2e1bb09a8ae5200ca99/s/master "wercker status")](https://app.wercker.com/project/byKey/380ff799a37ab2e1bb09a8ae5200ca99)
++
+ # generate-git-changelog
+ NPM module to run generate git changelog based on package.json version changes
+
+commit 2d028acf8157a6626b9dd6a080810dd25e3cff3a
+Merge: 53fa825 21a6349
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-11-01 00:05:15 -0300
+
+    Merge pull request #6 from rafaelverger/issue3
+
+    Using wercker as Continuous Integration service
+
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI. FIX #3
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+
+commit 53fa825a50e3757f30fd2a44cbb0696a52ab9b74
+Merge: a0300d3 e99e698
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-10-31 23:58:48 -0300
+
+    Merge pull request #5 from rafaelverger/issue4
+
+    Build changes using commits msg and grouped by version.
+
+commit e99e6986fdf1c206388e66f2c8a5029fba40fd45
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-10-31 23:55:28 -0300
+
+    Build changes using commits msg and grouped by version.
+
+    FIX #4
+
+diff --git a/index.js b/index.js
+new file mode 100644
+index 0000000..6d745fd
+--- /dev/null
++++ b/index.js
+@@ -0,0 +1,76 @@
++const spawn = require('child_process').spawn;
++const fs = require('fs');
++
++const parseCommit = require('./util').parseCommit;
++
++const pkg = JSON.parse(fs.readFileSync('package.json').toString());
++const currVersion = pkg.version;
++console.log('Creating changelog. Current version: ' + currVersion);
++
++console.log('Fetching git-log');
++const gitHistory = spawn('git', ['log', '-p', '--date=iso']);
++gitHistory.stderr.on('data', (data) => {
++  console.error(data.toString());
++});
++
++// `\n` is necessary due to `split` in line#16
++var commitsHistory = '\n';
++gitHistory.stdout.on('data', (buffer) => {
++  console.log('.');
++  commitsHistory += buffer.toString();
++});
++
++
++gitHistory.on('close', (code) => {
++  console.log('git-log fetched')
++  const changes = commitsHistory.split(/\ncommit\s/g).slice(1);
++  console.log(changes.length + ' commits were found');
++
++  console.log('Parsing commits...')
++  const changesObject = changes.map(changeText => {
++    const change = parseCommit(changeText);
++    const packageChange = change.patch['package.json'];
++    if (packageChange) {
++      const versionChange = packageChange.find(diffLine => diffLine.indexOf('+  "version":') === 0);
++      if (versionChange) {
++        change.version = versionChange.replace(/.*?"(\d+\.\d+\.\d+)".*/, '$1');
++      }
++    }
++    return change;
++  }).sort();
++
++  console.log('Sorting commits by version...');
++  // const fixIssueRegex = /((fix(es)?)|(closes?))\s?#\d+\b/i;
++  const changesTracker = changesObject.reduce((tracker, change, idx, arr) => {
++    if (change.version) {
++      if (Object.keys(tracker).length === 1) {
++        // if it's the first version found, set curr commits as unpublished version
++        tracker.unpublished = tracker.curr;
++      }
++      tracker[change.version] = [];
++      tracker.curr = tracker[change.version];
++    }
++    tracker.curr.push(change);
++
++    if (Object.keys(tracker) === 1 && idx === arr.length-1) {
++      // if it's the last item and no version is found, set curr commits as unpublished version
++      changesTracker.unpublished = changesTracker.curr;
++    }
++    return tracker;
++  }, { curr: [] });
++  changesTracker.curr = null;
++  delete changesTracker.curr;
++
++
++  const changelog_md = Object.keys(changesTracker)
++    .sort((k1, k2) => k1.match(/\d+\.\d+\.\d+/) ? (k2 - k1) : -1)
++    .filter(version => changesTracker[version].length)
++    .reduce((file, version) => file.concat(
++      ['## ' + version], changesTracker[version].map(change => '- ' + change.message)
++    ), ['# CHANGELOG\n']);
++
++  fs.writeFileSync('CHANGELOG.md', changelog_md.join('\n') + '\n', 'utf8');
++  console.log('Changes dump into CHANGELOG.md');
++  process.exit(0);
++});
++
+
+commit a0300d373f04171e7b9a176f4e4e73c5cb66c740
+Merge: 306f96e 5375a5c
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-10-31 21:37:00 -0300
+
+    Merge pull request #2 from rafaelverger/issue1
+
+    Create method to parse commit text
+
+commit 5375a5c73e85b9709825c63d260d04847657e717
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-10-31 21:35:55 -0300
+
+    Create method to parse commit text. FIX #1
+
+diff --git a/package.json b/package.json
+index b9a6faa..b589558 100644
+--- a/package.json
++++ b/package.json
+@@ -4,7 +4,7 @@
+   "description": "Automate your changelog update based on repo commits",
+   "main": "index.js",
+   "scripts": {
+-    "test": "test"
++    "test": "jest"
+   },
+   "repository": {
+     "type": "git",
+@@ -24,5 +24,10 @@
+     "url": "https://github.com/rafaelverger/create-git-changelog/issues"
+   },
+   "homepage": "https://github.com/rafaelverger/create-git-changelog#readme",
+-  "engines": { "node" : ">=4" }
++  "engines": {
++    "node": ">=4"
++  },
++  "devDependencies": {
++    "jest": "^21.2.1"
++  }
+ }
+diff --git a/util.js b/util.js
+new file mode 100644
+index 0000000..4be175d
+--- /dev/null
++++ b/util.js
+@@ -0,0 +1,54 @@
++
++const COMMIT_PROPERTIES_HANDLER = (v) => {
++  switch(v.toLowerCase()){
++    case 'date':
++      return x => new Date(x);
++    default:
++      return x => x
++  }
++};
++
++function parseCommit(commitText) {
++  const changeLines = commitText.split('\n').filter(line => line.trim());
++  const messageStartLine = changeLines.findIndex(line => line.match(/^date:\s*/i)) + 1;
++  const patchingDiffStartLine = Math.max(0, changeLines.findIndex(
++    line => line.indexOf('diff --git') === 0
++  )) || changeLines.length;
++
++  return Object.assign(
++    {
++      // first line of commit message is its id
++      id: changeLines[0].replace(/^commit\s+([a-z0-9]{40}).*/, '$1')
++    },
++    changeLines.slice(1, messageStartLine).reduce((obj, line) => {
++      const kv = line.split(':');
++      const key = kv[0].toLowerCase().trim();
++      const value = kv.slice(1).join(':').trim();
++      const handler = COMMIT_PROPERTIES_HANDLER(key);
++      obj[key] = handler(value);
++      return obj;
++    }, {}),
++    {
++      // after commit date line we have commit's message untill patching diff appears
++      message: changeLines.slice(messageStartLine, patchingDiffStartLine).map(l => l.trim()).join('\n'),
++      // if commit have patching diff it will be stored below
++      patch: changeLines.slice(patchingDiffStartLine).reduce((obj, line, idx, arr) => {
++        if (line.indexOf('diff --git') === 0) {
++          const fname = line.replace(/^diff --git a\/.* b\//, '');
++          obj[fname] = [];
++          obj.current = obj[fname];
++        }
++        obj.current.push(line);
++        if (idx === arr.length-1) {
++          obj.current = null;
++          delete obj.current;
++        }
++        return obj;
++      }, {}),
++    }
++  );
++}
++
++module.exports = {
++  parseCommit
++}
+diff --git a/util.test.js b/util.test.js
+new file mode 100644
+index 0000000..8a368d0
+--- /dev/null
++++ b/util.test.js
+@@ -0,0 +1,157 @@
++/**
++ * @jest-environment node
++ */
++
++ const util = require('./util');
++
++test('parseCommit', () => {
++  commitText = `
++commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf (HEAD -> issue1, origin/master, master)
++Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
++Date:   2018-10-31 18:35:27 -0300
++
++    Initial commit
++
++    Double line
++
++diff --git a/README.md b/README.md
++new file mode 100644
++index 0000000..0361a2c
++--- /dev/null
+++++ b/README.md
++@@ -0,0 +1,2 @@
+++# generate-git-changelog
+++NPM module to run generate git changelog based on package.json version changes
++`.trim();
++  const obj = util.parseCommit(commitText);
++  expect(obj).toMatchObject({
++    id: '0808ee7ab79b3d6b8740375b14e4567e827d3ccf',
++    author: 'Rafael Nunes Verger <rafael@rafaelverger.com.br>',
++    date: new Date('2018-10-31 18:35:27 -0300'),
++    message: 'Initial commit\nDouble line',
++    patch: {
++      'README.md': [
++        'diff --git a/README.md b/README.md',
++        'new file mode 100644',
++        'index 0000000..0361a2c',
++        '--- /dev/null',
++        '+++ b/README.md',
++        '@@ -0,0 +1,2 @@',
++        '+# generate-git-changelog',
++        '+NPM module to run generate git changelog based on package.json version changes',
++      ]
++    }
++  })
++});
++
++
++test('parseCommit multiple diffs', () => {
++  commitText = `
++commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf
++Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
++Date:   2018-10-31 18:35:27 -0300
++
++    Initial commit
++
++    Double line
++
++diff --git a/README.md b/README.md
++new file mode 100644
++index 0000000..0361a2c
++--- /dev/null
+++++ b/README.md
++@@ -0,0 +1,2 @@
+++# generate-git-changelog
+++NPM module to run generate git changelog based on package.json version changes
++
++diff --git a/package.json b/package.json
++new file mode 100644
++index 0000000..b9a6faa
++--- /dev/null
+++++ b/package.json
++@@ -0,0 +1,28 @@
+++{
+++  "name": "create-git-changelog",
+++  "version": "0.0.0",
+++  "description": "Automate your changelog update based on repo commits",
+++  "main": "index.js",
+++  "scripts": {
+++    "test": "test"
+++  },
+++  "repository": {
+++    "type": "git",
+++    "url": "git+https://github.com/rafaelverger/create-git-changelog.git"
+++  },
+++  "keywords": [
+++    "changelog",
+++    "git",
+++    "changes",
+++    "update",
+++    "automate",
+++    "generate"
+++  ],
+++  "author": "rafaelverger",
+++  "license": "MIT",
+++  "bugs": {
+++    "url": "https://github.com/rafaelverger/create-git-changelog/issues"
+++  },
+++  "homepage": "https://github.com/rafaelverger/create-git-changelog#readme",
+++  "engines": { "node" : ">=4" }
+++}
++`.trim();
++  const obj = util.parseCommit(commitText);
++  expect(obj).toMatchObject({
++    id: '0808ee7ab79b3d6b8740375b14e4567e827d3ccf',
++    author: 'Rafael Nunes Verger <rafael@rafaelverger.com.br>',
++    date: new Date('2018-10-31 18:35:27 -0300'),
++    message: 'Initial commit\nDouble line',
++    patch: {
++      'README.md': [
++        'diff --git a/README.md b/README.md',
++        'new file mode 100644',
++        'index 0000000..0361a2c',
++        '--- /dev/null',
++        '+++ b/README.md',
++        '@@ -0,0 +1,2 @@',
++        '+# generate-git-changelog',
++        '+NPM module to run generate git changelog based on package.json version changes',
++      ],
++      'package.json': [
++        'diff --git a/package.json b/package.json',
++        'new file mode 100644',
++        'index 0000000..b9a6faa',
++        '--- /dev/null',
++        '+++ b/package.json',
++        '@@ -0,0 +1,28 @@',
++        '+{',
++        '+  "name": "create-git-changelog",',
++        '+  "version": "0.0.0",',
++        '+  "description": "Automate your changelog update based on repo commits",',
++        '+  "main": "index.js",',
++        '+  "scripts": {',
++        '+    "test": "test"',
++        '+  },',
++        '+  "repository": {',
++        '+    "type": "git",',
++        '+    "url": "git+https://github.com/rafaelverger/create-git-changelog.git"',
++        '+  },',
++        '+  "keywords": [',
++        '+    "changelog",',
++        '+    "git",',
++        '+    "changes",',
++        '+    "update",',
++        '+    "automate",',
++        '+    "generate"',
++        '+  ],',
++        '+  "author": "rafaelverger",',
++        '+  "license": "MIT",',
++        '+  "bugs": {',
++        '+    "url": "https://github.com/rafaelverger/create-git-changelog/issues"',
++        '+  },',
++        '+  "homepage": "https://github.com/rafaelverger/create-git-changelog#readme",',
++        '+  "engines": { "node" : ">=4" }',
++        '+}',
++      ]
++    }
++  })
++});
+
+commit 306f96e6a6648d0b20e31deee3b632d5d45f0f19
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-10-31 18:57:51 -0300
+
+    Add package.json
+
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..b9a6faa
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,28 @@
++{
++  "name": "create-git-changelog",
++  "version": "0.0.0",
++  "description": "Automate your changelog update based on repo commits",
++  "main": "index.js",
++  "scripts": {
++    "test": "test"
++  },
++  "repository": {
++    "type": "git",
++    "url": "git+https://github.com/rafaelverger/create-git-changelog.git"
++  },
++  "keywords": [
++    "changelog",
++    "git",
++    "changes",
++    "update",
++    "automate",
++    "generate"
++  ],
++  "author": "rafaelverger",
++  "license": "MIT",
++  "bugs": {
++    "url": "https://github.com/rafaelverger/create-git-changelog/issues"
++  },
++  "homepage": "https://github.com/rafaelverger/create-git-changelog#readme",
++  "engines": { "node" : ">=4" }
++}
+
+commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf
+Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Date:   2018-10-31 18:35:27 -0300
+
+    Initial commit
+
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..0361a2c
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,2 @@
++# generate-git-changelog
++NPM module to run generate git changelog based on package.json version changes

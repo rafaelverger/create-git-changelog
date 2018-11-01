@@ -79,6 +79,5 @@ gitHistory.on('close', (code) => {
 
   fs.writeFileSync('CHANGELOG.md', changelog_md.join('\n') + '\n', 'utf8');
   console.log('Changes dump into CHANGELOG.md');
-  process.exit(0);
 });
 
