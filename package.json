@@ -4,7 +4,7 @@
   "description": "Automate your changelog update based on repo commits",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -24,5 +24,10 @@
     "url": "https://github.com/rafaelverger/create-git-changelog/issues"
   },
   "homepage": "https://github.com/rafaelverger/create-git-changelog#readme",
-  "engines": { "node" : ">=4" }
+  "engines": {
+    "node": ">=4"
+  },
+  "devDependencies": {
+    "jest": "^21.2.1"
+  }
 }
