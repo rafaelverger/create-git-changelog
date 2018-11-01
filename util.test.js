@@ -40,7 +40,8 @@ index 0000000..0361a2c
         '+# generate-git-changelog',
         '+NPM module to run generate git changelog based on package.json version changes',
       ]
-    }
+    },
+    ignoreMessage: false,
   })
 });
 
@@ -151,7 +152,8 @@ index 0000000..b9a6faa
         '+  "engines": { "node" : ">=4" }',
         '+}',
       ]
-    }
+    },
+    ignoreMessage: false,
   })
 });
 
@@ -173,7 +175,8 @@ Date:   2018-11-01 00:05:15 -0300
     author: 'Anon <anon@noone.knows>',
     date: new Date('2018-11-01 00:05:15 -0300'),
     message: 'Merge pull request #6 from rafaelverger/issue3\nUsing wercker as Continuous Integration service',
-    patch: {}
+    patch: {},
+    ignoreMessage: false,
   })
 });
 
@@ -216,7 +219,8 @@ index b952b44..602c994 100644
         '   "main": "lib/main.js",',
       ]
     },
-    version: '1.3.1'
+    version: '1.3.1',
+    ignoreMessage: true,
   })
 });
 
@@ -335,7 +339,8 @@ index 0000000..f6c9cb5
         '+    - npm-test',
       ]
     },
-    resolvedIssue: '3'
+    resolvedIssue: '3',
+    ignoreMessage: false,
   }
   commitTexts.forEach(commitText => {
     const obj = util.parseCommit(commitText);

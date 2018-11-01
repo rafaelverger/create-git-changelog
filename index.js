@@ -58,13 +58,14 @@ gitHistory.on('close', (code) => {
     if (changes.length === 0) return [];
     return ['\n## ' + version].concat(
       changes.map(change => {
+        if (change.ignoreMessage) return '';
         const resolvedIssue = change.resolvedIssue;
         return (
           '- ' +
           (resolvedIssue ? '[FIX #' + resolvedIssue + '] ' : '') +
           change.message.replace('\n', '\n  ')
         );
-      })
+      }).filter(msg => msg)
     )
   };
   const changelog_md = ['# CHANGELOG'].concat(
