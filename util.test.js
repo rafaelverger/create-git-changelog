@@ -7,7 +7,7 @@
 test('parseCommit', () => {
   commitText = `
 commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf (HEAD -> issue1, origin/master, master)
-Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Author: Anon <anon@noone.knows>
 Date:   2018-10-31 18:35:27 -0300
 
     Initial commit
@@ -26,7 +26,7 @@ index 0000000..0361a2c
   const obj = util.parseCommit(commitText);
   expect(obj).toMatchObject({
     id: '0808ee7ab79b3d6b8740375b14e4567e827d3ccf',
-    author: 'Rafael Nunes Verger <rafael@rafaelverger.com.br>',
+    author: 'Anon <anon@noone.knows>',
     date: new Date('2018-10-31 18:35:27 -0300'),
     message: 'Initial commit\nDouble line',
     patch: {
@@ -44,11 +44,10 @@ index 0000000..0361a2c
   })
 });
 
-
 test('parseCommit multiple diffs', () => {
   commitText = `
 commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf
-Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
+Author: Anon <anon@noone.knows>
 Date:   2018-10-31 18:35:27 -0300
 
     Initial commit
@@ -102,7 +101,7 @@ index 0000000..b9a6faa
   const obj = util.parseCommit(commitText);
   expect(obj).toMatchObject({
     id: '0808ee7ab79b3d6b8740375b14e4567e827d3ccf',
-    author: 'Rafael Nunes Verger <rafael@rafaelverger.com.br>',
+    author: 'Anon <anon@noone.knows>',
     date: new Date('2018-10-31 18:35:27 -0300'),
     message: 'Initial commit\nDouble line',
     patch: {
@@ -153,5 +152,119 @@ index 0000000..b9a6faa
         '+}',
       ]
     }
+  })
+});
+
+test('parseCommit merged commit', () => {
+  commitText = `
+commit 2d028acf8157a6626b9dd6a080810dd25e3cff3a
+Merge: 53fa825 21a6349
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:05:15 -0300
+
+    Merge pull request #6 from rafaelverger/issue3
+
+    Using wercker as Continuous Integration service
+`.trim();
+  const obj = util.parseCommit(commitText);
+  expect(obj).toMatchObject({
+    id: '2d028acf8157a6626b9dd6a080810dd25e3cff3a',
+    merge: ['53fa825', '21a6349'],
+    author: 'Anon <anon@noone.knows>',
+    date: new Date('2018-11-01 00:05:15 -0300'),
+    message: 'Merge pull request #6 from rafaelverger/issue3\nUsing wercker as Continuous Integration service',
+    patch: {}
+  })
+});
+
+test('parseCommit pkg version change commit', () => {
+  commitText = `
+commit cc70261c7cbe458221caec5bfab14745d73cff79 (tag: v1.3.1)
+Author: Anon <anon@noone.knows>
+Date:   2017-04-10 17:50:05 -0700
+
+    Version Bump v13.1: #16 fix issue where concat was used incorrectly
+
+diff --git a/package.json b/package.json
+index b952b44..602c994 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "smtpapi",
+-  "version": "1.3.0",
++  "version": "1.3.1",
+   "main": "lib/main.js",
+`.trim();
+  const obj = util.parseCommit(commitText);
+  expect(obj).toMatchObject({
+    id: 'cc70261c7cbe458221caec5bfab14745d73cff79',
+    author: 'Anon <anon@noone.knows>',
+    date: new Date('2017-04-10 17:50:05 -0700'),
+    message: 'Version Bump v13.1: #16 fix issue where concat was used incorrectly',
+    patch: {
+      'package.json': [
+        'diff --git a/package.json b/package.json',
+        'index b952b44..602c994 100644',
+        '--- a/package.json',
+        '+++ b/package.json',
+        '@@ -1,6 +1,6 @@',
+        ' {',
+        '   "name": "smtpapi",',
+        '-  "version": "1.3.0",',
+        '+  "version": "1.3.1",',
+        '   "main": "lib/main.js",',
+      ]
+    },
+    version: '1.3.1'
+  })
+});
+
+test('parseCommit pkg version change commit', () => {
+  commitText = `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI.
+
+    Testing
+
+    FIX #3
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+`.trim();
+  const obj = util.parseCommit(commitText);
+  expect(obj).toMatchObject({
+    id: '21a63493df3557cf4efd31fe9d902cbd33734743',
+    author: 'Anon <anon@noone.knows>',
+    date: new Date('2018-11-01 00:03:01 -0300'),
+    message: 'Using wercker as CI.\nTesting',
+    patch: {
+      'wercker.yml': [
+        'diff --git a/wercker.yml b/wercker.yml',
+        'new file mode 100644',
+        'index 0000000..f6c9cb5',
+        '--- /dev/null',
+        '+++ b/wercker.yml',
+        '@@ -0,0 +1,5 @@',
+        '+box: node:4',
+        '+build:',
+        '+  steps:',
+        '+    - npm-install',
+        '+    - npm-test',
+      ]
+    },
+    resolvedIssue: '3'
   })
 });
