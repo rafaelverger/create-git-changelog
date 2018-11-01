@@ -32,11 +32,12 @@ gitHistory.on('close', (code) => {
   ));
 
   console.log('Sorting commits by version...');
+  const unpublishedChanges = [];
   const changesTracker = parsedChanges.reduce((tracker, change, idx, arr) => {
     if (change.version) {
       if (Object.keys(tracker).length === 1) {
         // if it's the first version found, set curr commits as unpublished version
-        tracker.unpublished = tracker.curr;
+        [].push.apply(unpublishedChanges, tracker.curr);
       }
       tracker[change.version] = [];
       tracker.curr = tracker[change.version];
@@ -45,7 +46,7 @@ gitHistory.on('close', (code) => {
 
     if (Object.keys(tracker) === 1 && idx === arr.length-1) {
       // if it's the last item and no version is found, set curr commits as unpublished version
-      changesTracker.unpublished = changesTracker.curr;
+      [].push.apply(unpublishedChanges, tracker.curr);
     }
     return tracker;
   }, { curr: [] });
@@ -53,15 +54,27 @@ gitHistory.on('close', (code) => {
   delete changesTracker.curr;
 
   console.log('Writing changelog...');
-  const changelog_md = Object.keys(changesTracker)
-    .sort((k1, k2) => k1.match(/\d+\.\d+\.\d+/) ? (k2 - k1) : -1)
-    .filter(version => changesTracker[version].length)
-    .reduce((file, version) => file.concat(
-      ['## ' + version],
-      changesTracker[version]
-        .map(change => '- ' + change.message.replace('\n', '\n  ')),
-      ['']
-    ), ['# CHANGELOG\n']);
+  const writeVersionChanges = (version, changes) => {
+    if (changes.length === 0) return [];
+    return ['\n## ' + version].concat(
+      changes.map(change => {
+        const resolvedIssue = change.resolvedIssue;
+        return (
+          '- ' +
+          (resolvedIssue ? '[FIX #' + resolvedIssue + '] ' : '') +
+          change.message.replace('\n', '\n  ')
+        );
+      })
+    )
+  };
+  const changelog_md = ['# CHANGELOG'].concat(
+    writeVersionChanges('unpublished', unpublishedChanges),
+    Object.keys(changesTracker)
+      .sort((k1, k2) => k2 - k1)
+      .reduce((acc, version) => acc.concat(
+        writeVersionChanges(version, changesTracker[version])
+      ), [])
+  );
 
   fs.writeFileSync('CHANGELOG.md', changelog_md.join('\n') + '\n', 'utf8');
   console.log('Changes dump into CHANGELOG.md');
