@@ -67,6 +67,12 @@ function parseCommit(commitText) {
       .trim();
   }
 
+  change.ignoreMessage = !!(
+    change.version &&
+    Object.keys(change.patch).every(file => file.match(/(package.json)|(changelog.md)/i)) &&
+    change.patch['package.json'].filter(l => l.match(/^\+[^\+]/)).length === 1
+  );
+
   return change;
 }
 
