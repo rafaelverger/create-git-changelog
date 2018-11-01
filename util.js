@@ -1,8 +1,11 @@
 
+const FIX_ISSUE_REGEX = /((fix(es)?)|(closes?))\s?#(\d)+\b/i;
 const COMMIT_PROPERTIES_HANDLER = (v) => {
   switch(v.toLowerCase()){
     case 'date':
       return x => new Date(x);
+    case 'merge':
+      return x => x.split(' ');
     default:
       return x => x
   }
@@ -15,7 +18,7 @@ function parseCommit(commitText) {
     line => line.indexOf('diff --git') === 0
   )) || changeLines.length;
 
-  return Object.assign(
+  const change = Object.assign(
     {
       // first line of commit message is its id
       id: changeLines[0].replace(/^commit\s+([a-z0-9]{40}).*/, '$1')
@@ -47,6 +50,24 @@ function parseCommit(commitText) {
       }, {}),
     }
   );
+  const packageChange = change.patch['package.json'];
+  if (packageChange) {
+    const versionChange = packageChange.find(diffLine => diffLine.indexOf('+  "version":') === 0);
+    if (versionChange) {
+      change.version = versionChange.replace(/.*?"(\d+\.\d+\.\d+)".*/, '$1');
+    }
+  }
+
+  const issueRelated = FIX_ISSUE_REGEX.exec(change.message)
+  if (issueRelated) {
+    change.resolvedIssue = issueRelated[5];
+    change.message = change.message
+      .replace(issueRelated[0], '')
+      .replace(/\s+?(\s)/g, '$1')
+      .trim();
+  }
+
+  return change;
 }
 
 module.exports = {
