@@ -1,0 +1,6 @@
+__mock__/
+__snapshots__/
+coverage/
+.coveralls.yml
+*.test.js
+wercker.yml
