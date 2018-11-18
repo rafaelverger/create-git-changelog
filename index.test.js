@@ -18,7 +18,7 @@ test('changelog creation', (done) => {
     done();
   });
 
-  require('./index');
+  require('./index')();
 
   emitter.stdout.emit('data', commitHistory);
   emitter.emit('close', 0);

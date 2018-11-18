@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Automate your changelog update based on repo commits",
   "main": "index.js",
+  "bin": {
+    "create-changelog": "./cli.js"
+  },
   "scripts": {
     "coverage": "cat ./coverage/lcov.info | coveralls",
     "test:unit": "jest --coverage",
