@@ -1,5 +1,6 @@
 
 const COMMIT_HASH_REGEX = /^commit\s+([a-z0-9]{40}).*/i;
+const COMMIT_TAG_REGEX = /^.*\(tag:\s?(.*?)(,.*)*\)/i;
 const FIX_ISSUE_REGEX = /((fix(es)?)|(closes?))\s?#(\d+)\b/i;
 const COMMIT_PROPERTIES_HANDLER = (v) => {
   switch(v.toLowerCase()){
@@ -16,6 +17,11 @@ function getCommitHash(commitFirstLine) {
   return COMMIT_HASH_REGEX.exec(commitFirstLine)[1];
 }
 
+function findCommitTag(commitFirstLine) {
+  const rs = COMMIT_TAG_REGEX.exec(commitFirstLine);
+  return rs ? rs[1] : null;
+}
+
 function parseCommit(commitText) {
   const changeLines = commitText.split('\n').filter(line => line.trim());
   const messageStartLine = changeLines.findIndex(line => line.match(/^date:\s*/i)) + 1;
@@ -25,8 +31,9 @@ function parseCommit(commitText) {
 
   const change = Object.assign(
     {
-      // first line of commit message is its id
-      id: getCommitHash(changeLines[0])
+      // first line of commit message is its id and tag
+      id: getCommitHash(changeLines[0]),
+      tag: findCommitTag(changeLines[0])
     },
     changeLines.slice(1, messageStartLine).reduce((obj, line) => {
       const kv = line.split(':');

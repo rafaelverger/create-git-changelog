@@ -2,7 +2,7 @@ const util = require('./util');
 
 test('parseCommit', () => {
   const commitText = `
-commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf (HEAD -> issue1, origin/master, master)
+commit 0808ee7ab79b3d6b8740375b14e4567e827d3ccf (tag: v0.0.1, HEAD -> issue1, origin/master, master)
 Author: Anon <anon@noone.knows>
 Date:   2018-10-31 18:35:27 -0300
 
@@ -22,6 +22,7 @@ index 0000000..0361a2c
   const obj = util.parseCommit(commitText);
   expect(obj).toMatchObject({
     id: '0808ee7ab79b3d6b8740375b14e4567e827d3ccf',
+    tag: 'v0.0.1',
     author: 'Anon <anon@noone.knows>',
     date: new Date('2018-10-31 18:35:27 -0300'),
     message: 'Initial commit\nDouble line',
@@ -98,6 +99,7 @@ index 0000000..b9a6faa
   const obj = util.parseCommit(commitText);
   expect(obj).toMatchObject({
     id: '0808ee7ab79b3d6b8740375b14e4567e827d3ccf',
+    tag: null,
     author: 'Anon <anon@noone.knows>',
     date: new Date('2018-10-31 18:35:27 -0300'),
     message: 'Initial commit\nDouble line',
@@ -167,6 +169,7 @@ Date:   2018-11-01 00:05:15 -0300
   const obj = util.parseCommit(commitText);
   expect(obj).toMatchObject({
     id: '2d028acf8157a6626b9dd6a080810dd25e3cff3a',
+    tag: null,
     merge: ['53fa825', '21a6349'],
     author: 'Anon <anon@noone.knows>',
     date: new Date('2018-11-01 00:05:15 -0300'),
