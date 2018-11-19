@@ -25,7 +25,7 @@ module.exports = function() {
 
   gitHistory.on('close', (code) => {
     console.log('git-log fetched')
-    const changes = commitsHistory.split(/\ncommit\s/g).slice(1);
+    const changes = commitsHistory.replace(/\n(commit\s)/g, ':||:$1').split(':||:').slice(1);
     console.log(changes.length + ' commits were found');
 
     console.log('Parsing commits...')
