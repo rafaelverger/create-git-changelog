@@ -46,7 +46,7 @@ module.exports = function() {
       }
       tracker.curr.push(change);
 
-      if (Object.keys(tracker) === 1 && idx === arr.length-1) {
+      if (Object.keys(tracker).length === 1 && idx === arr.length-1) {
         // if it's the last item and no version is found, set curr commits as unpublished version
         [].push.apply(unpublishedChanges, tracker.curr);
       }
