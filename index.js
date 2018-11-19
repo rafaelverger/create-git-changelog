@@ -6,8 +6,14 @@ const parseCommit = require('./util').parseCommit;
 const pkg = JSON.parse(fs.readFileSync('package.json').toString());
 const currVersion = pkg.version;
 
-module.exports = function() {
+const defaultOptions = { useTags: false };
+module.exports = function(options) {
   console.log('Creating changelog. Current version: ' + currVersion);
+  const opts = Object.assign({}, defaultOptions, options);
+  const useTags = opts.useTags;
+  if (useTags) {
+    console.log('** Using only tagged commits as version changes')
+  }
 
   console.log('Fetching git-log');
   const gitHistory = spawn('git', ['log', '-p', '--date=iso']);
@@ -36,13 +42,14 @@ module.exports = function() {
     console.log('Sorting commits by version...');
     const unpublishedChanges = [];
     const changesTracker = parsedChanges.reduce((tracker, change, idx, arr) => {
-      if (change.version) {
+      if ((useTags && change.tag) || (!useTags && change.version)) {
+        const version = useTags ? change.tag : change.version;
         if (Object.keys(tracker).length === 1) {
           // if it's the first version found, set curr commits as unpublished version
           [].push.apply(unpublishedChanges, tracker.curr);
         }
-        tracker[change.version] = [];
-        tracker.curr = tracker[change.version];
+        tracker[version] = [];
+        tracker.curr = tracker[version];
       }
       tracker.curr.push(change);
 

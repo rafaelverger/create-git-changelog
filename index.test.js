@@ -15,7 +15,7 @@ afterAll((done) => {
   cmd.on('close', (code) => done());
 }, 500);
 
-function assertChangelog(commitHistory, done) {
+function assertChangelog(commitHistory, options, done) {
   const emitter = new EventEmitter();
   emitter.stderr = new EventEmitter();
   emitter.stdout = new EventEmitter();
@@ -29,7 +29,7 @@ function assertChangelog(commitHistory, done) {
     done();
   });
 
-  require('./index')();
+  require('./index')(options);
 
   emitter.stdout.emit('data', commitHistory);
   emitter.emit('close', 0);
@@ -37,10 +37,15 @@ function assertChangelog(commitHistory, done) {
 
 test('changelog creation', (done) => {
   const commitHistory = fs.readFileSync('./__mock__/commit.history');
-  assertChangelog(commitHistory, done);
+  assertChangelog(commitHistory, {}, done);
 }, 6000);
 
 test('changelog creation with only unpublished changes', (done) => {
   const commitHistory = fs.readFileSync('./__mock__/commit_unpublished.history');
-  assertChangelog(commitHistory, done);
+  assertChangelog(commitHistory, {}, done);
+}, 6000);
+
+test('changelog creation with tagged commits', (done) => {
+  const commitHistory = fs.readFileSync('./__mock__/commit_tagged.history');
+  assertChangelog(commitHistory, { useTags: true }, done);
 }, 6000);
