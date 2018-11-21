@@ -16,7 +16,7 @@ module.exports = function(options) {
   }
 
   console.log('Fetching git-log');
-  const gitHistory = spawn('git', ['log', '-p', '--date=iso']);
+  const gitHistory = spawn('git', ['log', '-p', '--date=iso', '--decorate']);
   gitHistory.stderr.on('data', (data) => {
     console.error(data.toString());
   });
