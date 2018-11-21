@@ -1,6 +1,6 @@
 
 const COMMIT_HASH_REGEX = /^commit\s+([a-z0-9]{40}).*/i;
-const FIX_ISSUE_REGEX = /((fix(es)?)|(closes?))\s?#(\d)+\b/i;
+const FIX_ISSUE_REGEX = /((fix(es)?)|(closes?))\s?#(\d+)\b/i;
 const COMMIT_PROPERTIES_HANDLER = (v) => {
   switch(v.toLowerCase()){
     case 'date':

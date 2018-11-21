@@ -11,7 +11,7 @@ commit daa687eb0429f3fd620231d6202a09b1897debe4
 Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
 Date:   2018-11-01 01:03:34 -0300
 
-    Using new info to filter significant commits. FIX #7
+    Using new info to filter significant commits. FIX #17
 
 diff --git a/index.js b/index.js
 index 6d745fd..9bd1047 100644
