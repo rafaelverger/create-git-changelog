@@ -6,11 +6,17 @@ const parseCommit = require('./util').parseCommit;
 const pkg = JSON.parse(fs.readFileSync('package.json').toString());
 const currVersion = pkg.version;
 
-module.exports = function() {
+const defaultOptions = { useTags: false };
+module.exports = function(options) {
   console.log('Creating changelog. Current version: ' + currVersion);
+  const opts = Object.assign({}, defaultOptions, options);
+  const useTags = opts.useTags;
+  if (useTags) {
+    console.log('** Using only tagged commits as version changes')
+  }
 
   console.log('Fetching git-log');
-  const gitHistory = spawn('git', ['log', '-p', '--date=iso']);
+  const gitHistory = spawn('git', ['log', '-p', '--date=iso', '--decorate']);
   gitHistory.stderr.on('data', (data) => {
     console.error(data.toString());
   });
@@ -25,7 +31,11 @@ module.exports = function() {
 
   gitHistory.on('close', (code) => {
     console.log('git-log fetched')
-    const changes = commitsHistory.replace(/\n(commit\s)/g, ':||:$1').split(':||:').slice(1);
+    // doing (':|:'+':|:') is necessary to avoid spliting this line after commit
+    const changes = commitsHistory
+      .replace(/^(commit\s+([a-zA-Z0-9]{40})(\s+\([^\)]+\))?)$/gm, ':|:'+':|:$1')
+      .split(':|:'+':|:')
+      .slice(1);
     console.log(changes.length + ' commits were found');
 
     console.log('Parsing commits...')
@@ -36,13 +46,14 @@ module.exports = function() {
     console.log('Sorting commits by version...');
     const unpublishedChanges = [];
     const changesTracker = parsedChanges.reduce((tracker, change, idx, arr) => {
-      if (change.version) {
+      if ((useTags && change.tag) || (!useTags && change.version)) {
+        const version = useTags ? change.tag : change.version;
         if (Object.keys(tracker).length === 1) {
           // if it's the first version found, set curr commits as unpublished version
           [].push.apply(unpublishedChanges, tracker.curr);
         }
-        tracker[change.version] = [];
-        tracker.curr = tracker[change.version];
+        tracker[version] = [];
+        tracker.curr = tracker[version];
       }
       tracker.curr.push(change);
 
