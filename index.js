@@ -76,7 +76,7 @@ module.exports = function(options) {
           return (
             '- ' +
             (resolvedIssue ? '[FIX #' + resolvedIssue + '] ' : '') +
-            change.message.replace('\n', '\n  ')
+            change.message.replace(/\n/gm, '\n  ')
           );
         }).filter(msg => msg)
       )

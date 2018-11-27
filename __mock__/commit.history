@@ -13,6 +13,10 @@ Date:   2018-11-01 01:03:34 -0300
 
     Using new info to filter significant commits. FIX #17
 
+    and
+
+    more than two lines
+
 diff --git a/index.js b/index.js
 index 6d745fd..9bd1047 100644
 --- a/index.js

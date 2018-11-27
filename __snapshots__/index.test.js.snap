@@ -5,6 +5,8 @@ exports[`changelog creation 1`] = `
 
 ## unpublished
 - [FIX #17] Using new info to filter significant commits.
+  and
+  more than two lines
 - Enhancing change infos while parsing commits. rel #7
 - Add wercker badge to README
 - [FIX #3] Using wercker as CI.
