@@ -84,7 +84,8 @@ module.exports = function(options) {
     const changelog_md = ['# CHANGELOG'].concat(
       writeVersionChanges('unpublished', unpublishedChanges),
       Object.keys(changesTracker)
-        .sort((k1, k2) => k2 - k1)
+        .sort()
+        .reverse()
         .reduce((acc, version) => acc.concat(
           writeVersionChanges(version, changesTracker[version])
         ), [])
