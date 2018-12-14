@@ -1,6 +1,7 @@
 const spawn = require('child_process').spawn;
 const fs = require('fs');
 
+const logger = require('./logger');
 const parseCommit = require('./util').parseCommit;
 
 const pkg = JSON.parse(fs.readFileSync('package.json').toString());
@@ -8,42 +9,50 @@ const currVersion = pkg.version;
 
 const defaultOptions = { useTags: false, descLines: 2 };
 module.exports = function(options) {
-  console.log('Creating changelog. Current version: ' + currVersion);
+  logger.info('Creating changelog. Current version: ' + currVersion);
   const opts = Object.assign({}, defaultOptions, options);
+  logger.info('** Commits description will be truncated in ' + opts.descLines + ' lines');
   const useTags = opts.useTags;
   if (useTags) {
-    console.log('** Using only tagged commits as version changes')
+    logger.info('** Using only tagged commits as version changes')
   }
 
-  console.log('Fetching git-log');
+  logger.info('Fetching git-log...');
   const gitHistory = spawn('git', ['log', '-p', '--date=iso', '--decorate']);
   gitHistory.stderr.on('data', (data) => {
-    console.error(data.toString());
+    logger.error(data.toString());
   });
 
   // `\n` is necessary due to `split` in line#16
   var commitsHistory = '\n';
+
   gitHistory.stdout.on('data', (buffer) => {
-    console.log('.');
     commitsHistory += buffer.toString();
+    const logSize = parseFloat(commitsHistory.length/1024.0).toFixed(2);
+    logger.progress('Fetched ' + logSize + 'Kb from git-log...');
   });
 
 
   gitHistory.on('close', (code) => {
-    console.log('git-log fetched')
+    logger.info('git-log fetched')
     // doing (':|:'+':|:') is necessary to avoid spliting this line after commit
     const changes = commitsHistory
       .replace(/^(commit\s+([a-zA-Z0-9]{40})(\s+\([^\)]+\))?)$/gm, ':|:'+':|:$1')
       .split(':|:'+':|:')
       .slice(1);
-    console.log(changes.length + ' commits were found');
+    const totalChanges = changes.length;
+    logger.info(totalChanges + ' commits were found');
 
-    console.log('Parsing commits...')
-    const parsedChanges = changes.map(parseCommit).filter(change => (
+    logger.info('Parsing commits...')
+    const parsedChanges = changes.map((c, i) => {
+      logger.progress('Parsing commits: ' + parseFloat(100.0*i/totalChanges).toFixed(2) + '%');
+      return parseCommit(c);
+    }).filter(change => (
       change.resolvedIssue || Object.keys(change.patch).length
     ));
+    logger.info('Valid commits: ' + parsedChanges.length);
 
-    console.log('Sorting commits by version...');
+    logger.info('Sorting commits by version...');
     const unpublishedChanges = [];
     const changesTracker = parsedChanges.reduce((tracker, change, idx, arr) => {
       if ((useTags && change.tag) || (!useTags && change.version)) {
@@ -66,7 +75,7 @@ module.exports = function(options) {
     changesTracker.curr = null;
     delete changesTracker.curr;
 
-    console.log('Writing changelog...');
+    logger.info('Writing changelog...');
     const writeVersionChanges = (version, changes) => {
       if (changes.length === 0) return [];
       return ['\n## ' + version].concat(
@@ -92,6 +101,6 @@ module.exports = function(options) {
     );
 
     fs.writeFileSync('CHANGELOG.md', changelog_md.join('\n') + '\n', 'utf8');
-    console.log('Changes dump into CHANGELOG.md');
+    logger.info('Changes dump into CHANGELOG.md');
   });
 };
