@@ -1,6 +1,6 @@
 {
   "name": "create-git-changelog",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Automate your changelog update based on repo commits",
   "main": "index.js",
   "bin": {
