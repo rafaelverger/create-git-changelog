@@ -17,6 +17,15 @@ parser.addArgument(
   }
 );
 
+parser.addArgument(
+  [ '-l', '--desc-lines' ],
+  {
+    help: 'Limit commit descriptions lines to N',
+    defaultValue: 2,
+    dest: 'descLines'
+  }
+);
+
 const args = parser.parseArgs();
 
 const createChangelog = require('./');

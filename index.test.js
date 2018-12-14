@@ -40,6 +40,11 @@ test('changelog creation', (done) => {
   assertChangelog(commitHistory, {}, done);
 }, 6000);
 
+test('changelog creation using more than 2 lines', (done) => {
+  const commitHistory = fs.readFileSync('./__mock__/commit.history');
+  assertChangelog(commitHistory, { descLines: 3 }, done);
+}, 6000);
+
 test('changelog creation with only unpublished changes', (done) => {
   const commitHistory = fs.readFileSync('./__mock__/commit_unpublished.history');
   assertChangelog(commitHistory, {}, done);

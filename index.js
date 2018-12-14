@@ -6,7 +6,7 @@ const parseCommit = require('./util').parseCommit;
 const pkg = JSON.parse(fs.readFileSync('package.json').toString());
 const currVersion = pkg.version;
 
-const defaultOptions = { useTags: false };
+const defaultOptions = { useTags: false, descLines: 2 };
 module.exports = function(options) {
   console.log('Creating changelog. Current version: ' + currVersion);
   const opts = Object.assign({}, defaultOptions, options);
@@ -76,7 +76,7 @@ module.exports = function(options) {
           return (
             '- ' +
             (resolvedIssue ? '[FIX #' + resolvedIssue + '] ' : '') +
-            change.message.replace(/\n/gm, '\n  ')
+            change.message.split(/\n/).slice(0, opts.descLines).join('\n  ')
           );
         }).filter(msg => msg)
       )
