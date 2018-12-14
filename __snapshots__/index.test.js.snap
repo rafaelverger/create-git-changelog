@@ -13,7 +13,7 @@ exports[`changelog creation 1`] = `
 - [FIX #4] Build changes using commits msg and grouped by version.
 - [FIX #1] Create method to parse commit text.
 
-## 0.0.0
+## 0.0.0-alpha
 - Add package.json
 - Initial commit
 "
@@ -40,7 +40,7 @@ exports[`changelog creation with tagged commits 1`] = `
 ## unpublished
 - [FIX #7] Using new info to filter significant commits.
 
-## v0.0.2
+## v0.0.2-beta.2
 - Enhancing change infos while parsing commits. rel #7
 
 ## v0.0.1

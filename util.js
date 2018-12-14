@@ -66,7 +66,7 @@ function parseCommit(commitText) {
   if (packageChange) {
     const versionChange = packageChange.find(diffLine => diffLine.indexOf('+  "version":') === 0);
     if (versionChange) {
-      change.version = versionChange.replace(/.*?"(\d+\.\d+\.\d+)".*/, '$1');
+      change.version = versionChange.replace(/.*?"(\d+\.\d+\.\d+(-\w+(\.\d+)?)?)".*/, '$1');
     }
   }
 

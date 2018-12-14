@@ -706,7 +706,7 @@ index 0000000..b9a6faa
 @@ -0,0 +1,28 @@
 +{
 +  "name": "create-git-changelog",
-+  "version": "0.0.0",
++  "version": "0.0.0-alpha",
 +  "description": "Automate your changelog update based on repo commits",
 +  "main": "index.js",
 +  "scripts": {

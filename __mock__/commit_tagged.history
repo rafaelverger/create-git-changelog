@@ -62,7 +62,7 @@ index 6d745fd..9bd1047 100644
 
    fs.writeFileSync('CHANGELOG.md', changelog_md.join('\n') + '\n', 'utf8');
 
-commit 3e4f63dbb0c49803bdebe03ed7ee52c29f5a18d0 (tag: v0.0.2)
+commit 3e4f63dbb0c49803bdebe03ed7ee52c29f5a18d0 (tag: v0.0.2-beta.2)
 Author: Rafael Nunes Verger <rafael@rafaelverger.com.br>
 Date:   2018-11-01 00:54:59 -0300
 

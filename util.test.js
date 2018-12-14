@@ -195,7 +195,7 @@ index b952b44..602c994 100644
  {
    "name": "smtpapi",
 -  "version": "1.3.0",
-+  "version": "1.3.1",
++  "version": "1.3.1-dev.2",
    "main": "lib/main.js",
 `.trim();
   const obj = util.parseCommit(commitText);
@@ -214,11 +214,11 @@ index b952b44..602c994 100644
         ' {',
         '   "name": "smtpapi",',
         '-  "version": "1.3.0",',
-        '+  "version": "1.3.1",',
+        '+  "version": "1.3.1-dev.2",',
         '   "main": "lib/main.js",',
       ]
     },
-    version: '1.3.1',
+    version: '1.3.1-dev.2',
     ignoreMessage: true,
   })
 });
