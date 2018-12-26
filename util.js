@@ -2,6 +2,9 @@
 const COMMIT_HASH_REGEX = /^commit\s+([a-z0-9]{40}).*/i;
 const COMMIT_TAG_REGEX = /^.*\(tag:\s?(.*?)(,.*)*\)/i;
 const FIX_ISSUE_REGEX = /((fix(es)?)|(closes?))\s?#(\d+)\b/i;
+const REFS_ISSUE_REGEX = /(\s*[\w]+\s*)?#(\d+)/i;
+const REFS_REGEX = /re((fs?)|(l)|(ferences?)|(lated))\s*/i;
+
 const COMMIT_PROPERTIES_HANDLER = (v) => {
   switch(v.toLowerCase()){
     case 'date':
@@ -60,6 +63,7 @@ function parseCommit(commitText) {
         }
         return obj;
       }, {}),
+      relatedIssues: [],
     }
   );
   const packageChange = change.patch['package.json'];
@@ -70,14 +74,25 @@ function parseCommit(commitText) {
     }
   }
 
-  const issueRelated = FIX_ISSUE_REGEX.exec(change.message)
-  if (issueRelated) {
-    change.resolvedIssue = issueRelated[5];
+  const fixedIssue = FIX_ISSUE_REGEX.exec(change.message)
+  if (fixedIssue) {
+    change.resolvedIssue = fixedIssue[5];
     change.message = change.message
-      .replace(issueRelated[0], '')
+      .replace(fixedIssue[0], '')
       .replace(/\s+?(\s)/g, '$1')
       .trim();
   }
+
+  var relatedIssues;
+  while (relatedIssues = REFS_ISSUE_REGEX.exec(change.message)) {
+    change.relatedIssues.push(relatedIssues[2]);
+    change.message = change.message.replace(REFS_ISSUE_REGEX, (_, txt, issue) => (
+      (!txt || txt.match(REFS_REGEX)) ? '' : txt
+    ))
+  }
+
+  // trimming message lines
+  change.message = change.message.replace(/\s+\n/gm, '\n');
 
   change.ignoreMessage = !!(
     change.version &&

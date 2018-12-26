@@ -346,3 +346,163 @@ index 0000000..f6c9cb5
     expect(obj).toMatchObject(expected);
   });
 });
+
+
+test.only('parseCommit commit with referenced issue', () => {
+  const commitTexts = [
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI. fix #3 refs #4 #5
+
+    Testing
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI. fix #3 rel #4 #5
+
+    Testing
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI. fix #3 ref #4 #5
+
+    Testing
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI. fix #3 references #4 #5
+
+    Testing
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI. fix #3 reference #4 #5
+
+    Testing
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  `
+commit 21a63493df3557cf4efd31fe9d902cbd33734743
+Author: Anon <anon@noone.knows>
+Date:   2018-11-01 00:03:01 -0300
+
+    Using wercker as CI. fix #3 related #4 #5
+
+    Testing
+
+diff --git a/wercker.yml b/wercker.yml
+new file mode 100644
+index 0000000..f6c9cb5
+--- /dev/null
++++ b/wercker.yml
+@@ -0,0 +1,5 @@
++box: node:4
++build:
++  steps:
++    - npm-install
++    - npm-test
+  `.trim(),
+  ];
+  const expected = {
+    id: '21a63493df3557cf4efd31fe9d902cbd33734743',
+    author: 'Anon <anon@noone.knows>',
+    date: new Date('2018-11-01 00:03:01 -0300'),
+    message: 'Using wercker as CI.\nTesting',
+    patch: {
+      'wercker.yml': [
+        'diff --git a/wercker.yml b/wercker.yml',
+        'new file mode 100644',
+        'index 0000000..f6c9cb5',
+        '--- /dev/null',
+        '+++ b/wercker.yml',
+        '@@ -0,0 +1,5 @@',
+        '+box: node:4',
+        '+build:',
+        '+  steps:',
+        '+    - npm-install',
+        '+    - npm-test',
+      ]
+    },
+    resolvedIssue: '3',
+    relatedIssues: ['4', '5'],
+    ignoreMessage: false,
+  }
+  commitTexts.forEach(commitText => {
+    const obj = util.parseCommit(commitText);
+    expect(obj).toMatchObject(expected);
+  });
+});

@@ -15,7 +15,7 @@ Date:   2018-11-01 01:03:34 -0300
 
     and
 
-    more than two lines
+    more than two lines references #18 #19
 
 diff --git a/index.js b/index.js
 index 6d745fd..9bd1047 100644

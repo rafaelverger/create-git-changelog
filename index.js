@@ -82,10 +82,12 @@ module.exports = function(options) {
         changes.map(change => {
           if (change.ignoreMessage) return '';
           const resolvedIssue = change.resolvedIssue;
+          const relatedIssues = change.relatedIssues.join(' #');
           return (
             '- ' +
             (resolvedIssue ? '[FIX #' + resolvedIssue + '] ' : '') +
-            change.message.split(/\n/).slice(0, opts.descLines).join('\n  ')
+            change.message.split(/\n/).slice(0, opts.descLines).join('\n  ') +
+            (relatedIssues ? '\n  _Also related to:_ #'+ relatedIssues : '')
           );
         }).filter(msg => msg)
       )
